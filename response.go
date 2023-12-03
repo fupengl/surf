@@ -10,6 +10,7 @@ type Response struct {
 	originalResponse *http.Response
 	config           *RequestConfig
 	body             []byte
+	Performance      *Performance
 }
 
 func (r *Response) Body() []byte {

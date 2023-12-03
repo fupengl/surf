@@ -124,23 +124,47 @@ func (rc *RequestConfig) SetQuery(key, value string) *RequestConfig {
 	return rc
 }
 
+func (rc *RequestConfig) SetHeader(key, value string) *RequestConfig {
+	if rc.Headers == nil {
+		rc.Headers = make(http.Header)
+	}
+	rc.Headers.Set(key, value)
+	return rc
+}
+
 func (rc *RequestConfig) getRequestBody() (r io.Reader, err error) {
 	if rc.Body == nil {
 		return
 	}
-	data := rc.Body
-	r, ok := data.(io.Reader)
-	if ok {
-		return r, nil
-	}
 
-	buf, ok := data.([]byte)
-	if !ok {
+	switch data := rc.Body.(type) {
+	case io.Reader:
+		return data, nil
+	case []byte:
+		return bytes.NewReader(data), nil
+	default:
 		err = ErrRequestDataTypeInvalid
 		return
 	}
-	r = bytes.NewReader(buf)
-	return
+}
+
+func (rc *RequestConfig) setContentTypeHeader() {
+	switch body := rc.Body.(type) {
+	case string:
+		rc.SetHeader("Content-Type", "text/plain; charset=UTF-8")
+	case []byte:
+		rc.SetHeader("Content-Type", "application/octet-stream")
+	case io.Reader:
+		// Do nothing, assuming the user has set the appropriate Content-Type
+	case url.Values:
+		// For form data, set Content-Type as application/x-www-form-urlencoded
+		rc.SetHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+		// URL encode the form data
+		rc.Body = strings.NewReader(body.Encode())
+	default:
+		// For other types, set the default Content-Type as JSON
+		rc.SetHeader("Content-Type", "application/json; charset=UTF-8")
+	}
 }
 
 func (rc *RequestConfig) mergeConfig(config *Config) *RequestConfig {
@@ -174,6 +198,10 @@ func (rc *RequestConfig) mergeConfig(config *Config) *RequestConfig {
 
 	if rc.Context == nil {
 		rc.Context = context.Background()
+	}
+
+	if rc.MaxBodyLength == 0 {
+		rc.MaxBodyLength = config.MaxBodyLength
 	}
 	return rc
 }
@@ -230,9 +258,9 @@ func (c *Config) invokeResponseInterceptors(resp *Response) (err error) {
 	return
 }
 
-func WithBody(values interface{}) WithRequestConfig {
+func WithBody(body interface{}) WithRequestConfig {
 	return func(c *RequestConfig) {
-		c.Body = values
+		c.Body = body
 	}
 }
 
@@ -242,9 +270,13 @@ func WithQuery(values url.Values) WithRequestConfig {
 	}
 }
 
-func WithHeader(values http.Header) WithRequestConfig {
+func WithSetHeader(headers http.Header) WithRequestConfig {
 	return func(c *RequestConfig) {
-		c.Headers = values
+		for k, l := range headers {
+			for _, v := range l {
+				c.SetHeader(k, v)
+			}
+		}
 	}
 }
 
