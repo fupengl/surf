@@ -82,7 +82,7 @@ func (s *Surf) prepareRequest(config *RequestConfig) (*http.Request, error) {
 		req.Header.Set(headerAcceptEncoding, defaultAcceptEncoding)
 	}
 	if req.Header.Get(headerAccept) == "" {
-		req.Header.Set(headerAccept, acceptEncoding)
+		req.Header.Set(headerAccept, defaultAccept)
 	}
 
 	if s.Debug {
@@ -123,7 +123,7 @@ func (s *Surf) Request(config *RequestConfig) (*Response, error) {
 		}
 
 		if resp.StatusCode >= http.StatusMultipleChoices && resp.StatusCode < http.StatusBadRequest {
-			location := resp.Header.Get("Location")
+			location := resp.Header.Get(headerLocation)
 			if location == "" {
 				return nil, ErrRedirectMissingLocation
 			}

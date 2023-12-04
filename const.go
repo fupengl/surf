@@ -1,11 +1,20 @@
 package surf
 
-const (
-	UserAgent             = "surf/0.0.1"
-	defaultAcceptEncoding = "gzip, br"
-	acceptEncoding        = "gzip, br"
+import "net/http"
 
-	headerUserAgent      = "User-Agent"
-	headerAcceptEncoding = "Accept-Encoding"
-	headerAccept         = "Accept"
+const Version = "0.0.1"
+
+const (
+	UserAgent             = "surf/" + Version + " (https://github.com/fupengl/surf)"
+	defaultAcceptEncoding = "gzip, deflate, br"
+	defaultAccept         = "application/json, text/plain, */*'"
+)
+
+var (
+	headerUserAgent       = http.CanonicalHeaderKey("User-Agent")
+	headerAcceptEncoding  = http.CanonicalHeaderKey("Accept-Encoding")
+	headerAccept          = http.CanonicalHeaderKey("Accept")
+	headerLocation        = http.CanonicalHeaderKey("Location")
+	headerContentEncoding = http.CanonicalHeaderKey("Content-Encoding")
+	headerContentLength   = http.CanonicalHeaderKey("Content-Length")
 )
