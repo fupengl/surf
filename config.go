@@ -27,6 +27,8 @@ type (
 		Cookies   []*http.Cookie
 		CookieJar *http.CookieJar
 
+		Params map[string]string
+
 		QuerySerializer *QuerySerializer
 
 		RequestInterceptors  []RequestInterceptor
@@ -47,6 +49,8 @@ type (
 
 		Timeout time.Duration
 		Context context.Context
+
+		Params map[string]string
 
 		Query           url.Values
 		QuerySerializer *QuerySerializer
@@ -112,6 +116,14 @@ func (rc *RequestConfig) SetQuery(key, value string) *RequestConfig {
 	return rc
 }
 
+func (rc *RequestConfig) SetParams(key, value string) *RequestConfig {
+	if rc.Params == nil {
+		rc.Params = make(map[string]string)
+	}
+	rc.Params[key] = value
+	return rc
+}
+
 func (rc *RequestConfig) SetHeader(key, value string) *RequestConfig {
 	if rc.Headers == nil {
 		rc.Headers = make(http.Header)
@@ -120,12 +132,19 @@ func (rc *RequestConfig) SetHeader(key, value string) *RequestConfig {
 	return rc
 }
 
-func (rc *RequestConfig) SetCookie(hc *http.Cookie) *RequestConfig {
-	rc.Cookies = append(rc.Cookies, hc)
+func (rc *RequestConfig) SetCookie(cookie *http.Cookie) *RequestConfig {
+	rc.Cookies = append(rc.Cookies, cookie)
 	return rc
 }
 
 func (rc *RequestConfig) appendQueryToURL(u string) string {
+	if rc.Params != nil {
+		for key, value := range rc.Params {
+			placeholder := ":" + key
+			u = strings.Replace(u, placeholder, value, -1)
+		}
+	}
+
 	if rc.Query != nil {
 		qs := rc.BuildQuery()
 		if strings.Contains(u, "?") {
@@ -208,6 +227,12 @@ func (rc *RequestConfig) mergeConfig(config *Config) *RequestConfig {
 	if rc.MaxBodyLength == 0 {
 		rc.MaxBodyLength = config.MaxBodyLength
 	}
+
+	if config.Params != nil {
+		for key, val := range config.Params {
+			rc.SetParams(key, val)
+		}
+	}
 	return rc
 }
 
@@ -269,19 +294,27 @@ func WithBody(body interface{}) WithRequestConfig {
 	}
 }
 
+func WithHeaders(header http.Header) WithRequestConfig {
+	return func(c *RequestConfig) {
+		c.Headers = header
+	}
+}
+
 func WithQuery(values url.Values) WithRequestConfig {
 	return func(c *RequestConfig) {
 		c.Query = values
 	}
 }
 
-func WithSetHeader(headers http.Header) WithRequestConfig {
+func WithParams(params map[string]string) WithRequestConfig {
 	return func(c *RequestConfig) {
-		for k, l := range headers {
-			for _, v := range l {
-				c.SetHeader(k, v)
-			}
-		}
+		c.Params = params
+	}
+}
+
+func WithCookies(cookies []*http.Cookie) WithRequestConfig {
+	return func(c *RequestConfig) {
+		c.Cookies = cookies
 	}
 }
 
@@ -295,6 +328,34 @@ func WithTimeoutContext(ctx context.Context, timeout time.Duration) WithRequestC
 	return func(c *RequestConfig) {
 		c.Context = ctx
 		c.Timeout = timeout
+	}
+}
+
+func WithSetQuery(key, value string) WithRequestConfig {
+	return func(c *RequestConfig) {
+		c.SetQuery(key, value)
+	}
+}
+
+func WithSetParam(key, value string) WithRequestConfig {
+	return func(c *RequestConfig) {
+		c.SetParams(key, value)
+	}
+}
+
+func WithSetHeader(headers http.Header) WithRequestConfig {
+	return func(c *RequestConfig) {
+		for k, l := range headers {
+			for _, v := range l {
+				c.SetHeader(k, v)
+			}
+		}
+	}
+}
+
+func WithSetCookie(cookie *http.Cookie) WithRequestConfig {
+	return func(c *RequestConfig) {
+		c.SetCookie(cookie)
 	}
 }
 

@@ -1,6 +1,8 @@
 package surf
 
 import (
+	"log"
+	"net/http"
 	"net/url"
 	"testing"
 )
@@ -64,6 +66,19 @@ func TestRequestConfig_BuildURL(t *testing.T) {
 			},
 			Output: "https://www.baidu.com/a?a=a",
 		},
+		{
+			RequestConfig: RequestConfig{
+				BaseURL: "www.baidu.com/:id",
+				Url:     "a",
+				Query: url.Values{
+					"a": {"a"},
+				},
+				Params: map[string]string{
+					"id": "xxx",
+				},
+			},
+			Output: "https://www.baidu.com/xxx/a?a=a",
+		},
 	}
 
 	for _, item := range data {
@@ -107,5 +122,18 @@ func TestRequestConfig_BuildQuery(t *testing.T) {
 		if outPut != item.Output {
 			t.Fatalf("query build expect %s output %s.", item.Output, outPut)
 		}
+	}
+}
+
+func TestRequestConfig_SetCookie(t *testing.T) {
+	config := RequestConfig{
+		Cookies: nil,
+	}
+	config.SetCookie(&http.Cookie{
+		Name:  "1",
+		Value: "1",
+	})
+	if len(config.Cookies) != 1 {
+		log.Fatal("set cookie error")
 	}
 }

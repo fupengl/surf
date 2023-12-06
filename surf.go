@@ -220,6 +220,7 @@ func (s *Surf) CloneDefaultConfig() *Config {
 		BaseURL:              s.Config.BaseURL,
 		Headers:              s.Config.Headers.Clone(),
 		Timeout:              s.Config.Timeout,
+		Params:               s.Config.Params,
 		Cookies:              append([]*http.Cookie(nil), s.Config.Cookies...),
 		CookieJar:            s.Config.CookieJar,
 		QuerySerializer:      s.Config.QuerySerializer,
