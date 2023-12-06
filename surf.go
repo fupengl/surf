@@ -49,7 +49,7 @@ func (s *Surf) prepareRequest(config *RequestConfig) (*http.Request, error) {
 		}
 	}
 	for _, cookie := range s.Config.Cookies {
-		req.AddCookie(&cookie)
+		req.AddCookie(cookie)
 	}
 
 	err = s.Config.invokeRequestInterceptors(config)
@@ -72,7 +72,7 @@ func (s *Surf) prepareRequest(config *RequestConfig) (*http.Request, error) {
 
 	// Update Cookies
 	for _, cookie := range config.Cookies {
-		req.AddCookie(&cookie)
+		req.AddCookie(cookie)
 	}
 
 	if req.UserAgent() == "" {
@@ -220,7 +220,7 @@ func (s *Surf) CloneDefaultConfig() *Config {
 		BaseURL:              s.Config.BaseURL,
 		Headers:              s.Config.Headers.Clone(),
 		Timeout:              s.Config.Timeout,
-		Cookies:              append([]http.Cookie(nil), s.Config.Cookies...),
+		Cookies:              append([]*http.Cookie(nil), s.Config.Cookies...),
 		CookieJar:            s.Config.CookieJar,
 		QuerySerializer:      s.Config.QuerySerializer,
 		RequestInterceptors:  append([]RequestInterceptor(nil), s.Config.RequestInterceptors...),

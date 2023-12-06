@@ -24,7 +24,7 @@ type (
 		BaseURL   string
 		Headers   http.Header
 		Timeout   time.Duration
-		Cookies   []http.Cookie
+		Cookies   []*http.Cookie
 		CookieJar *http.CookieJar
 
 		QuerySerializer *QuerySerializer
@@ -43,7 +43,7 @@ type (
 		Url     string
 		Headers http.Header
 		Method  string
-		Cookies []http.Cookie
+		Cookies []*http.Cookie
 
 		Timeout time.Duration
 		Context context.Context
@@ -104,18 +104,6 @@ func (rc *RequestConfig) BuildQuery() string {
 	return qs
 }
 
-func (rc *RequestConfig) appendQueryToURL(u string) string {
-	if rc.Query != nil {
-		qs := rc.BuildQuery()
-		if strings.Contains(u, "?") {
-			return u + "&" + qs
-		} else {
-			return u + "?" + qs
-		}
-	}
-	return u
-}
-
 func (rc *RequestConfig) SetQuery(key, value string) *RequestConfig {
 	if rc.Query == nil {
 		rc.Query = make(url.Values)
@@ -130,6 +118,23 @@ func (rc *RequestConfig) SetHeader(key, value string) *RequestConfig {
 	}
 	rc.Headers.Set(key, value)
 	return rc
+}
+
+func (rc *RequestConfig) SetCookie(hc *http.Cookie) *RequestConfig {
+	rc.Cookies = append(rc.Cookies, hc)
+	return rc
+}
+
+func (rc *RequestConfig) appendQueryToURL(u string) string {
+	if rc.Query != nil {
+		qs := rc.BuildQuery()
+		if strings.Contains(u, "?") {
+			return u + "&" + qs
+		} else {
+			return u + "?" + qs
+		}
+	}
+	return u
 }
 
 func (rc *RequestConfig) getRequestBody() (r io.Reader, err error) {
