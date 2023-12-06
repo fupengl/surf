@@ -20,6 +20,11 @@ type (
 		Encode func(values url.Values) string
 	}
 
+	Interceptors struct {
+		RequestInterceptors  []RequestInterceptor
+		ResponseInterceptors []ResponseInterceptor
+	}
+
 	Config struct {
 		BaseURL   string
 		Headers   http.Header
@@ -31,8 +36,7 @@ type (
 
 		QuerySerializer *QuerySerializer
 
-		RequestInterceptors  []RequestInterceptor
-		ResponseInterceptors []ResponseInterceptor
+		Interceptors Interceptors
 
 		MaxBodyLength int
 		MaxRedirects  int
@@ -54,6 +58,8 @@ type (
 
 		Query           url.Values
 		QuerySerializer *QuerySerializer
+
+		Interceptors Interceptors
 
 		Body interface{}
 
@@ -173,21 +179,25 @@ func (rc *RequestConfig) getRequestBody() (r io.Reader, err error) {
 }
 
 func (rc *RequestConfig) setContentTypeHeader() {
+	if rc.Headers.Get(headerContentType) != "" {
+		return
+	}
+
 	switch body := rc.Body.(type) {
 	case string:
-		rc.SetHeader("Content-Type", "text/plain; charset=UTF-8")
+		rc.SetHeader(headerContentType, defaultTextContentType)
 	case []byte:
-		rc.SetHeader("Content-Type", "application/octet-stream")
+		rc.SetHeader(headerContentType, defaultStreamContentType)
 	case io.Reader:
 		// Do nothing, assuming the user has set the appropriate Content-Type
 	case url.Values:
 		// For form data, set Content-Type as application/x-www-form-urlencoded
-		rc.SetHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+		rc.SetHeader(headerContentType, defaultFormContentType)
 		// URL encode the form data
 		rc.Body = strings.NewReader(body.Encode())
 	default:
 		// For other types, set the default Content-Type as JSON
-		rc.SetHeader("Content-Type", "application/json; charset=UTF-8")
+		rc.SetHeader(headerContentType, defaultJsonContentType)
 	}
 }
 
@@ -236,7 +246,7 @@ func (rc *RequestConfig) mergeConfig(config *Config) *RequestConfig {
 	return rc
 }
 
-func (c *Config) AppendRequestInterceptors(interceptors ...RequestInterceptor) *Config {
+func (c *Interceptors) AppendRequestInterceptors(interceptors ...RequestInterceptor) *Interceptors {
 	if c.RequestInterceptors == nil {
 		c.RequestInterceptors = make([]RequestInterceptor, 0)
 	}
@@ -244,7 +254,7 @@ func (c *Config) AppendRequestInterceptors(interceptors ...RequestInterceptor) *
 	return c
 }
 
-func (c *Config) PrependRequestInterceptors(interceptors ...RequestInterceptor) *Config {
+func (c *Interceptors) PrependRequestInterceptors(interceptors ...RequestInterceptor) *Interceptors {
 	if c.RequestInterceptors == nil {
 		c.RequestInterceptors = make([]RequestInterceptor, 0)
 	}
@@ -252,7 +262,7 @@ func (c *Config) PrependRequestInterceptors(interceptors ...RequestInterceptor) 
 	return c
 }
 
-func (c *Config) invokeRequestInterceptors(config *RequestConfig) (err error) {
+func (c *Interceptors) invokeRequestInterceptors(config *RequestConfig) (err error) {
 	for _, fn := range c.RequestInterceptors {
 		err = fn(config)
 		if err != nil {
@@ -262,7 +272,7 @@ func (c *Config) invokeRequestInterceptors(config *RequestConfig) (err error) {
 	return
 }
 
-func (c *Config) AppendResponseInterceptors(interceptors ...ResponseInterceptor) *Config {
+func (c *Interceptors) AppendResponseInterceptors(interceptors ...ResponseInterceptor) *Interceptors {
 	if c.ResponseInterceptors == nil {
 		c.ResponseInterceptors = make([]ResponseInterceptor, 0)
 	}
@@ -270,7 +280,7 @@ func (c *Config) AppendResponseInterceptors(interceptors ...ResponseInterceptor)
 	return c
 }
 
-func (c *Config) PrependResponseInterceptors(interceptors ...ResponseInterceptor) *Config {
+func (c *Interceptors) PrependResponseInterceptors(interceptors ...ResponseInterceptor) *Interceptors {
 	if c.ResponseInterceptors == nil {
 		c.ResponseInterceptors = make([]ResponseInterceptor, 0)
 	}
@@ -278,7 +288,7 @@ func (c *Config) PrependResponseInterceptors(interceptors ...ResponseInterceptor
 	return c
 }
 
-func (c *Config) invokeResponseInterceptors(resp *Response) (err error) {
+func (c *Interceptors) invokeResponseInterceptors(resp *Response) (err error) {
 	for _, fn := range c.ResponseInterceptors {
 		err = fn(resp)
 		if err != nil {
