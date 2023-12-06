@@ -21,6 +21,9 @@ func readBody(res *http.Response, maxBodyLength int) ([]byte, error) {
 	encoding := res.Header.Get(headerContentEncoding)
 	switch encoding {
 	case "gzip":
+	case "x-gzip":
+	case "compress":
+	case "x-compress":
 		var err error
 		reader, err = gzip.NewReader(res.Body)
 		if err != nil {
