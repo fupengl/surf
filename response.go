@@ -3,6 +3,7 @@ package surf
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -23,6 +24,11 @@ func (r *Response) Json(v any) error {
 
 func (r *Response) Text() string {
 	return string(r.body)
+}
+
+func (r *Response) SaveToFile(filename string) error {
+	err := os.WriteFile(filename, r.body, 0644)
+	return err
 }
 
 func (r *Response) StatusText() string {

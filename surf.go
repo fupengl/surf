@@ -207,6 +207,14 @@ func (s *Surf) Options(url string, args ...WithRequestConfig) (*Response, error)
 	return s.makeRequest(url, http.MethodOptions, args...)
 }
 
+func (s *Surf) Connect(url string, args ...WithRequestConfig) (*Response, error) {
+	return s.makeRequest(url, http.MethodConnect, args...)
+}
+
+func (s *Surf) Trace(url string, args ...WithRequestConfig) (*Response, error) {
+	return s.makeRequest(url, http.MethodTrace, args...)
+}
+
 func (s *Surf) CloneDefaultConfig() *Config {
 	return &Config{
 		BaseURL:              s.Config.BaseURL,
