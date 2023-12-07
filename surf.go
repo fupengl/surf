@@ -191,10 +191,31 @@ func (s *Surf) Request(config *RequestConfig) (*Response, error) {
 	}
 }
 
-func (s *Surf) makeRequest(url string, method string, args ...WithRequestConfig) (*Response, error) {
+func (s *Surf) Upload(url string, file *multipartFile, args ...WithRequestConfig) (resp *Response, err error) {
+	body, err := file.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	return s.makeRequest(url, http.MethodPost,
+		append([]WithRequestConfig{
+			WithBody(body),
+			WithHeaders(http.Header{
+				headerContentType: {
+					file.FormDataContentType(),
+				},
+			}),
+		}, args...)...,
+	)
+}
+
+func (s *Surf) makeRequest(defaultUrl string, defaultMethod string, args ...WithRequestConfig) (*Response, error) {
 	config := combineRequestConfig(args...)
-	config.Method = method
-	config.Url = url
+	if config.Url == "" {
+		config.Url = defaultUrl
+	}
+	if config.Method == "" {
+		config.Method = defaultMethod
+	}
 	return s.Request(&config)
 }
 
