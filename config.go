@@ -11,20 +11,26 @@ import (
 )
 
 type (
-	RequestInterceptor  func(config *RequestConfig) (err error)
+	// RequestInterceptor defines a function signature for request interceptors.
+	RequestInterceptor func(config *RequestConfig) (err error)
+	// ResponseInterceptor defines a function signature for response interceptors.
 	ResponseInterceptor func(resp *Response) (err error)
 
+	// WithRequestConfig is a function signature for configuring request options.
 	WithRequestConfig func(c *RequestConfig)
 
+	// QuerySerializer is responsible for encoding URL query parameters.
 	QuerySerializer struct {
 		Encode func(values url.Values) string
 	}
 
+	// Interceptors contains request and response interceptors.
 	Interceptors struct {
 		RequestInterceptors  []RequestInterceptor
 		ResponseInterceptors []ResponseInterceptor
 	}
 
+	// Config holds the configuration for Surf.
 	Config struct {
 		BaseURL   string
 		Headers   http.Header
@@ -45,6 +51,7 @@ type (
 		Client *http.Client
 	}
 
+	// RequestConfig holds the configuration for a specific HTTP request.
 	RequestConfig struct {
 		BaseURL string
 		Url     string
@@ -72,8 +79,10 @@ type (
 	}
 )
 
+// DefaultConfig is the default configuration for Surf.
 var DefaultConfig = &Config{}
 
+// BuildURL constructs the full URL based on the configuration.
 func (rc *RequestConfig) BuildURL() string {
 	baseURL := rc.BaseURL
 
@@ -103,6 +112,7 @@ func (rc *RequestConfig) BuildURL() string {
 	return rc.appendQueryToURL(u.String())
 }
 
+// BuildQuery constructs the query string based on the configuration.
 func (rc *RequestConfig) BuildQuery() string {
 	var qs string
 	if rc.Query != nil {
@@ -115,6 +125,7 @@ func (rc *RequestConfig) BuildQuery() string {
 	return qs
 }
 
+// SetQuery sets a query parameter in the request configuration.
 func (rc *RequestConfig) SetQuery(key, value string) *RequestConfig {
 	if rc.Query == nil {
 		rc.Query = make(url.Values)
@@ -123,6 +134,7 @@ func (rc *RequestConfig) SetQuery(key, value string) *RequestConfig {
 	return rc
 }
 
+// SetParams sets a parameter in the request configuration.
 func (rc *RequestConfig) SetParams(key, value string) *RequestConfig {
 	if rc.Params == nil {
 		rc.Params = make(map[string]string)
@@ -131,6 +143,7 @@ func (rc *RequestConfig) SetParams(key, value string) *RequestConfig {
 	return rc
 }
 
+// SetHeader sets a header in the request configuration.
 func (rc *RequestConfig) SetHeader(key, value string) *RequestConfig {
 	if rc.Headers == nil {
 		rc.Headers = make(http.Header)
@@ -139,11 +152,13 @@ func (rc *RequestConfig) SetHeader(key, value string) *RequestConfig {
 	return rc
 }
 
+// SetCookie adds a cookie to the request configuration.
 func (rc *RequestConfig) SetCookie(cookie *http.Cookie) *RequestConfig {
 	rc.Cookies = append(rc.Cookies, cookie)
 	return rc
 }
 
+// appendQueryToURL appends query parameters to the URL in the request configuration.
 func (rc *RequestConfig) appendQueryToURL(u string) string {
 	if rc.Params != nil {
 		for key, value := range rc.Params {
@@ -163,6 +178,7 @@ func (rc *RequestConfig) appendQueryToURL(u string) string {
 	return u
 }
 
+// getRequestBody returns the request body based on the configured body type.
 func (rc *RequestConfig) getRequestBody() (r io.Reader, err error) {
 	if rc.Body == nil {
 		return
@@ -179,6 +195,7 @@ func (rc *RequestConfig) getRequestBody() (r io.Reader, err error) {
 	}
 }
 
+// setContentTypeHeader sets the Content-Type header based on the request body type.
 func (rc *RequestConfig) setContentTypeHeader() {
 	if rc.Headers.Get(headerContentType) != "" {
 		return
@@ -202,6 +219,7 @@ func (rc *RequestConfig) setContentTypeHeader() {
 	}
 }
 
+// mergeConfig merges the current request configuration with the Config.
 func (rc *RequestConfig) mergeConfig(config *Config) *RequestConfig {
 	if rc.BaseURL == "" {
 		rc.BaseURL = config.BaseURL
@@ -259,6 +277,7 @@ func (rc *RequestConfig) mergeConfig(config *Config) *RequestConfig {
 	return rc
 }
 
+// AppendRequestInterceptors appends request interceptors to the interceptor list.
 func (c *Interceptors) AppendRequestInterceptors(interceptors ...RequestInterceptor) *Interceptors {
 	if c.RequestInterceptors == nil {
 		c.RequestInterceptors = make([]RequestInterceptor, 0)
@@ -267,6 +286,7 @@ func (c *Interceptors) AppendRequestInterceptors(interceptors ...RequestIntercep
 	return c
 }
 
+// PrependRequestInterceptors prepends request interceptors to the interceptor list.
 func (c *Interceptors) PrependRequestInterceptors(interceptors ...RequestInterceptor) *Interceptors {
 	if c.RequestInterceptors == nil {
 		c.RequestInterceptors = make([]RequestInterceptor, 0)
@@ -275,6 +295,7 @@ func (c *Interceptors) PrependRequestInterceptors(interceptors ...RequestInterce
 	return c
 }
 
+// invokeRequestInterceptors invokes all request interceptors with the provided configuration.
 func (c *Interceptors) invokeRequestInterceptors(config *RequestConfig) (err error) {
 	for _, fn := range c.RequestInterceptors {
 		err = fn(config)
@@ -285,6 +306,7 @@ func (c *Interceptors) invokeRequestInterceptors(config *RequestConfig) (err err
 	return
 }
 
+// AppendResponseInterceptors appends response interceptors to the interceptor list.
 func (c *Interceptors) AppendResponseInterceptors(interceptors ...ResponseInterceptor) *Interceptors {
 	if c.ResponseInterceptors == nil {
 		c.ResponseInterceptors = make([]ResponseInterceptor, 0)
@@ -293,6 +315,7 @@ func (c *Interceptors) AppendResponseInterceptors(interceptors ...ResponseInterc
 	return c
 }
 
+// PrependResponseInterceptors prepends response interceptors to the interceptor list.
 func (c *Interceptors) PrependResponseInterceptors(interceptors ...ResponseInterceptor) *Interceptors {
 	if c.ResponseInterceptors == nil {
 		c.ResponseInterceptors = make([]ResponseInterceptor, 0)
@@ -301,6 +324,7 @@ func (c *Interceptors) PrependResponseInterceptors(interceptors ...ResponseInter
 	return c
 }
 
+// invokeResponseInterceptors invokes all response interceptors with the provided response.
 func (c *Interceptors) invokeResponseInterceptors(resp *Response) (err error) {
 	for _, fn := range c.ResponseInterceptors {
 		err = fn(resp)
@@ -311,42 +335,49 @@ func (c *Interceptors) invokeResponseInterceptors(resp *Response) (err error) {
 	return
 }
 
+// WithBody sets the request body in the request configuration.
 func WithBody(body interface{}) WithRequestConfig {
 	return func(c *RequestConfig) {
 		c.Body = body
 	}
 }
 
+// WithHeaders sets the request headers in the request configuration.
 func WithHeaders(header http.Header) WithRequestConfig {
 	return func(c *RequestConfig) {
 		c.Headers = header
 	}
 }
 
+// WithQuery sets the query parameters in the request configuration.
 func WithQuery(values url.Values) WithRequestConfig {
 	return func(c *RequestConfig) {
 		c.Query = values
 	}
 }
 
+// WithParams sets the parameters in the request configuration.
 func WithParams(params map[string]string) WithRequestConfig {
 	return func(c *RequestConfig) {
 		c.Params = params
 	}
 }
 
+// WithCookies sets the cookies in the request configuration.
 func WithCookies(cookies []*http.Cookie) WithRequestConfig {
 	return func(c *RequestConfig) {
 		c.Cookies = cookies
 	}
 }
 
+// WithContext sets the context in the request configuration.
 func WithContext(ctx context.Context) WithRequestConfig {
 	return func(c *RequestConfig) {
 		c.Context = ctx
 	}
 }
 
+// WithTimeoutContext sets the context and timeout in the request configuration.
 func WithTimeoutContext(ctx context.Context, timeout time.Duration) WithRequestConfig {
 	return func(c *RequestConfig) {
 		c.Context = ctx
@@ -354,18 +385,21 @@ func WithTimeoutContext(ctx context.Context, timeout time.Duration) WithRequestC
 	}
 }
 
+// WithSetQuery adds a query parameter in the request configuration.
 func WithSetQuery(key, value string) WithRequestConfig {
 	return func(c *RequestConfig) {
 		c.SetQuery(key, value)
 	}
 }
 
+// WithSetParam adds a parameter in the request configuration.
 func WithSetParam(key, value string) WithRequestConfig {
 	return func(c *RequestConfig) {
 		c.SetParams(key, value)
 	}
 }
 
+// WithSetHeader adds a header in the request configuration.
 func WithSetHeader(headers http.Header) WithRequestConfig {
 	return func(c *RequestConfig) {
 		for k, l := range headers {
@@ -376,12 +410,14 @@ func WithSetHeader(headers http.Header) WithRequestConfig {
 	}
 }
 
+// WithSetCookie adds a cookie in the request configuration.
 func WithSetCookie(cookie *http.Cookie) WithRequestConfig {
 	return func(c *RequestConfig) {
 		c.SetCookie(cookie)
 	}
 }
 
+// combineRequestConfig combines multiple request configurations into a single configuration.
 func combineRequestConfig(args ...WithRequestConfig) RequestConfig {
 	config := RequestConfig{}
 	for _, arg := range args {

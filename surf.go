@@ -8,13 +8,16 @@ import (
 	"time"
 )
 
+// Surf represents the main Surf client configuration.
 type Surf struct {
 	Config *Config
 	Debug  bool
 }
 
+// Default is the default Surf instance with the default configuration.
 var Default = &Surf{Config: DefaultConfig}
 
+// New creates a new Surf instance with the given configuration.
 func New(config *Config) *Surf {
 	if config == nil {
 		config = DefaultConfig
@@ -24,6 +27,7 @@ func New(config *Config) *Surf {
 	}
 }
 
+// prepareRequest prepares an HTTP request based on the provided configuration.
 func (s *Surf) prepareRequest(config *RequestConfig) (*http.Request, error) {
 	r, err := config.getRequestBody()
 	if err != nil {
@@ -103,6 +107,7 @@ func (s *Surf) prepareRequest(config *RequestConfig) (*http.Request, error) {
 	return req, nil
 }
 
+// Request performs an HTTP request using the provided configuration.
 func (s *Surf) Request(config *RequestConfig) (*Response, error) {
 	config.mergeConfig(s.Config)
 
@@ -191,6 +196,7 @@ func (s *Surf) Request(config *RequestConfig) (*Response, error) {
 	}
 }
 
+// Upload performs a file upload using the provided URL, file, and optional request configuration.
 func (s *Surf) Upload(url string, file *multipartFile, args ...WithRequestConfig) (resp *Response, err error) {
 	body, err := file.Bytes()
 	if err != nil {
@@ -208,6 +214,7 @@ func (s *Surf) Upload(url string, file *multipartFile, args ...WithRequestConfig
 	)
 }
 
+// makeRequest is a helper function for creating an HTTP request with default or specified configuration.
 func (s *Surf) makeRequest(defaultUrl string, defaultMethod string, args ...WithRequestConfig) (*Response, error) {
 	config := combineRequestConfig(args...)
 	if config.Url == "" {
@@ -255,6 +262,7 @@ func (s *Surf) Trace(url string, args ...WithRequestConfig) (*Response, error) {
 	return s.makeRequest(url, http.MethodTrace, args...)
 }
 
+// CloneDefaultConfig creates a deep copy of the default configuration.
 func (s *Surf) CloneDefaultConfig() *Config {
 	return &Config{
 		BaseURL:         s.Config.BaseURL,
