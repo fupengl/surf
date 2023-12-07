@@ -13,7 +13,7 @@ type Surf struct {
 	Debug  bool
 }
 
-var DefaultClient = &Surf{Config: DefaultConfig}
+var Default = &Surf{Config: DefaultConfig}
 
 func New(config *Config) *Surf {
 	if config == nil {
