@@ -19,26 +19,26 @@ func readBody(res *http.Response, maxBodyLength int) ([]byte, error) {
 	// Check for Content-Encoding and decode accordingly
 	// https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Content-Encoding
 	encoding := res.Header.Get(headerContentEncoding)
-	switch encoding {
-	case "gzip":
-	case "x-gzip":
-	case "compress":
-	case "x-compress":
+	// If no content, but headers still say that it is encoded,
+	if res.StatusCode != http.StatusNoContent || res.Request.Method != http.MethodHead {
 		var err error
-		reader, err = gzip.NewReader(res.Body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create Gzip reader: %w", err)
+		switch encoding {
+		case "gzip", "x-gzip", "compress", "x-compress":
+			reader, err = gzip.NewReader(res.Body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create Gzip reader: %w", err)
+			}
+			defer reader.(*gzip.Reader).Close()
+		case "br":
+			reader, err = brotli.NewReader(res.Body, nil)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create Brotli reader: %w", err)
+			}
+			defer reader.(*brotli.Reader).Close()
+		case "deflate":
+			reader = flate.NewReader(res.Body)
+			defer reader.(io.ReadCloser).Close()
 		}
-		defer reader.(*gzip.Reader).Close()
-	case "br":
-		var err error
-		reader, err = brotli.NewReader(res.Body, nil)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create Brotli reader: %w", err)
-		}
-	case "deflate":
-		reader = flate.NewReader(res.Body)
-		defer reader.(io.ReadCloser).Close()
 	}
 
 	size := 0

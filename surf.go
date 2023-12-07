@@ -31,9 +31,6 @@ func (s *Surf) prepareRequest(config *RequestConfig) (*http.Request, error) {
 		return nil, err
 	}
 
-	// Auto set Content-type header
-	config.setContentTypeHeader()
-
 	req, err := http.NewRequestWithContext(config.Context, config.Method, config.BuildURL(), r)
 	if err != nil {
 		return nil, err
@@ -52,7 +49,15 @@ func (s *Surf) prepareRequest(config *RequestConfig) (*http.Request, error) {
 		req.AddCookie(cookie)
 	}
 
-	err = s.Config.invokeRequestInterceptors(config)
+	// Auto set Content-type header
+	config.setContentTypeHeader()
+
+	err = s.Config.Interceptors.invokeRequestInterceptors(config)
+	if err != nil {
+		return nil, err
+	}
+
+	err = config.Interceptors.invokeRequestInterceptors(config)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +92,12 @@ func (s *Surf) prepareRequest(config *RequestConfig) (*http.Request, error) {
 
 	if s.Debug {
 		log.Printf("DEBUG: Sending request to %s\n", req.URL)
-		log.Printf("DEBUG: Request headers: %v\n", req.Header)
+		log.Printf("DEBUG: Request headers:\n")
+		for key, values := range req.Header {
+			for _, value := range values {
+				fmt.Printf("	%s: %s\n", key, value)
+			}
+		}
 		log.Printf("DEBUG: Request cookies: %v\n", req.Cookies())
 	}
 
@@ -117,7 +127,12 @@ func (s *Surf) Request(config *RequestConfig) (*Response, error) {
 
 		if s.Debug {
 			log.Printf("DEBUG: Received response with status code %d\n", resp.StatusCode)
-			log.Printf("DEBUG: Response headers: %v\n", resp.Header)
+			log.Printf("DEBUG: Response headers:\n")
+			for key, values := range resp.Header {
+				for _, value := range values {
+					fmt.Printf("	%s: %s\n", key, value)
+				}
+			}
 			log.Printf("DEBUG: Response cookies: %v\n", resp.Cookies())
 			log.Printf("DEBUG: Response cost: %s\n", performance.ResponseTime)
 		}
@@ -163,7 +178,12 @@ func (s *Surf) Request(config *RequestConfig) (*Response, error) {
 			Performance:      performance,
 		}
 
-		err = s.Config.invokeResponseInterceptors(&response)
+		err = s.Config.Interceptors.invokeResponseInterceptors(&response)
+		if err != nil {
+			return nil, err
+		}
+
+		err = config.Interceptors.invokeResponseInterceptors(&response)
 		if err != nil {
 			return nil, err
 		}
@@ -217,17 +237,19 @@ func (s *Surf) Trace(url string, args ...WithRequestConfig) (*Response, error) {
 
 func (s *Surf) CloneDefaultConfig() *Config {
 	return &Config{
-		BaseURL:              s.Config.BaseURL,
-		Headers:              s.Config.Headers.Clone(),
-		Timeout:              s.Config.Timeout,
-		Params:               s.Config.Params,
-		Cookies:              append([]*http.Cookie(nil), s.Config.Cookies...),
-		CookieJar:            s.Config.CookieJar,
-		QuerySerializer:      s.Config.QuerySerializer,
-		RequestInterceptors:  append([]RequestInterceptor(nil), s.Config.RequestInterceptors...),
-		ResponseInterceptors: append([]ResponseInterceptor(nil), s.Config.ResponseInterceptors...),
-		MaxBodyLength:        s.Config.MaxBodyLength,
-		MaxRedirects:         s.Config.MaxRedirects,
-		Client:               s.Config.Client,
+		BaseURL:         s.Config.BaseURL,
+		Headers:         s.Config.Headers.Clone(),
+		Timeout:         s.Config.Timeout,
+		Params:          s.Config.Params,
+		Cookies:         append([]*http.Cookie(nil), s.Config.Cookies...),
+		CookieJar:       s.Config.CookieJar,
+		QuerySerializer: s.Config.QuerySerializer,
+		Interceptors: Interceptors{
+			RequestInterceptors:  append([]RequestInterceptor(nil), s.Config.Interceptors.RequestInterceptors...),
+			ResponseInterceptors: append([]ResponseInterceptor(nil), s.Config.Interceptors.ResponseInterceptors...),
+		},
+		MaxBodyLength: s.Config.MaxBodyLength,
+		MaxRedirects:  s.Config.MaxRedirects,
+		Client:        s.Config.Client,
 	}
 }
