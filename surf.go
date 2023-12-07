@@ -21,7 +21,6 @@ func New(config *Config) *Surf {
 	}
 	return &Surf{
 		Config: config,
-		Debug:  true,
 	}
 }
 
