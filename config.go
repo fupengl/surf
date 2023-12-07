@@ -33,6 +33,7 @@ type (
 		CookieJar *http.CookieJar
 
 		Params map[string]string
+		Query  url.Values
 
 		QuerySerializer *QuerySerializer
 
@@ -240,7 +241,19 @@ func (rc *RequestConfig) mergeConfig(config *Config) *RequestConfig {
 
 	if config.Params != nil {
 		for key, val := range config.Params {
-			rc.SetParams(key, val)
+			if _, ok := rc.Params[key]; !ok {
+				rc.SetParams(key, val)
+			}
+		}
+	}
+
+	if config.Query != nil {
+		for key, val := range config.Query {
+			if !rc.Query.Has(key) {
+				for _, s := range val {
+					rc.SetQuery(key, s)
+				}
+			}
 		}
 	}
 	return rc

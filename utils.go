@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/dsnet/compress/brotli"
@@ -78,4 +79,24 @@ func readAllInitCap(r io.Reader, initCap int) ([]byte, error) {
 		}
 	}
 	return b, nil
+}
+
+func cloneMap[V any](originalMap map[string]V) map[string]V {
+	clonedMap := make(map[string]V)
+
+	for key, value := range originalMap {
+		clonedMap[key] = value
+	}
+
+	return clonedMap
+}
+
+func cloneURLValues(originalValues url.Values) url.Values {
+	clonedValues := make(url.Values)
+
+	for key, values := range originalValues {
+		clonedValues[key] = append([]string(nil), values...)
+	}
+
+	return clonedValues
 }
