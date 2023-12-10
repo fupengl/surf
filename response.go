@@ -3,6 +3,7 @@ package surf
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"io"
 	"net/http"
 	"os"
@@ -30,6 +31,11 @@ func (r *Response) BodyReader() io.Reader {
 // Json parses the JSON response body and stores the result in the provided variable (v).
 func (r *Response) Json(v interface{}) error {
 	return json.Unmarshal(r.body, &v)
+}
+
+// XML parses the xml response body and stores the result in the provided variable (v).
+func (r *Response) XML(v interface{}) error {
+	return xml.Unmarshal(r.body, &v)
 }
 
 // Text returns the response body as a string.
