@@ -1,7 +1,9 @@
 package surf
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -18,6 +20,11 @@ type Response struct {
 // Body returns the raw body of the HTTP response.
 func (r *Response) Body() []byte {
 	return r.body
+}
+
+// BodyReader returns the response body as an io.Reader.
+func (r *Response) BodyReader() io.Reader {
+	return bytes.NewReader(r.body)
 }
 
 // Json parses the JSON response body and stores the result in the provided variable (v).
