@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -40,6 +41,9 @@ type (
 		RequestInterceptors  []RequestInterceptor
 		ResponseInterceptors []ResponseInterceptor
 
+		requestInterceptorsMu  sync.RWMutex
+		responseInterceptorsMu sync.RWMutex
+
 		MaxBodyLength int
 		MaxRedirects  int
 
@@ -64,6 +68,9 @@ type (
 
 		RequestInterceptors  []RequestInterceptor
 		ResponseInterceptors []ResponseInterceptor
+
+		requestInterceptorsMu  sync.Mutex
+		responseInterceptorsMu sync.Mutex
 
 		Body interface{}
 
@@ -277,6 +284,9 @@ func (rc *RequestConfig) mergeConfig(config *Config) *RequestConfig {
 
 // AppendRequestInterceptors appends request interceptors to the interceptor list.
 func (rc *RequestConfig) AppendRequestInterceptors(interceptors ...RequestInterceptor) *RequestConfig {
+	rc.requestInterceptorsMu.Lock()
+	defer rc.requestInterceptorsMu.Unlock()
+
 	if rc.RequestInterceptors == nil {
 		rc.RequestInterceptors = make([]RequestInterceptor, 0)
 	}
@@ -286,6 +296,9 @@ func (rc *RequestConfig) AppendRequestInterceptors(interceptors ...RequestInterc
 
 // PrependRequestInterceptors prepends request interceptors to the interceptor list.
 func (rc *RequestConfig) PrependRequestInterceptors(interceptors ...RequestInterceptor) *RequestConfig {
+	rc.requestInterceptorsMu.Lock()
+	defer rc.requestInterceptorsMu.Unlock()
+
 	if rc.RequestInterceptors == nil {
 		rc.RequestInterceptors = make([]RequestInterceptor, 0)
 	}
@@ -295,6 +308,9 @@ func (rc *RequestConfig) PrependRequestInterceptors(interceptors ...RequestInter
 
 // invokeRequestInterceptors invokes all request interceptors with the provided configuration.
 func (rc *RequestConfig) invokeRequestInterceptors(config *RequestConfig) (err error) {
+	rc.requestInterceptorsMu.Lock()
+	defer rc.requestInterceptorsMu.Unlock()
+
 	for _, fn := range rc.RequestInterceptors {
 		err = fn(config)
 		if err != nil {
@@ -306,6 +322,9 @@ func (rc *RequestConfig) invokeRequestInterceptors(config *RequestConfig) (err e
 
 // AppendResponseInterceptors appends response interceptors to the interceptor list.
 func (rc *RequestConfig) AppendResponseInterceptors(interceptors ...ResponseInterceptor) *RequestConfig {
+	rc.responseInterceptorsMu.Lock()
+	defer rc.responseInterceptorsMu.Unlock()
+
 	if rc.ResponseInterceptors == nil {
 		rc.ResponseInterceptors = make([]ResponseInterceptor, 0)
 	}
@@ -315,6 +334,9 @@ func (rc *RequestConfig) AppendResponseInterceptors(interceptors ...ResponseInte
 
 // PrependResponseInterceptors prepends response interceptors to the interceptor list.
 func (rc *RequestConfig) PrependResponseInterceptors(interceptors ...ResponseInterceptor) *RequestConfig {
+	rc.responseInterceptorsMu.Lock()
+	defer rc.responseInterceptorsMu.Unlock()
+
 	if rc.ResponseInterceptors == nil {
 		rc.ResponseInterceptors = make([]ResponseInterceptor, 0)
 	}
@@ -324,6 +346,9 @@ func (rc *RequestConfig) PrependResponseInterceptors(interceptors ...ResponseInt
 
 // invokeResponseInterceptors invokes all response interceptors with the provided response.
 func (rc *RequestConfig) invokeResponseInterceptors(resp *Response) (err error) {
+	rc.responseInterceptorsMu.Lock()
+	defer rc.responseInterceptorsMu.Unlock()
+
 	for _, fn := range rc.ResponseInterceptors {
 		err = fn(resp)
 		if err != nil {
@@ -335,6 +360,9 @@ func (rc *RequestConfig) invokeResponseInterceptors(resp *Response) (err error) 
 
 // invokeRequestInterceptors invokes all request interceptors with the provided configuration.
 func (c *Config) invokeRequestInterceptors(config *RequestConfig) (err error) {
+	c.requestInterceptorsMu.Lock()
+	defer c.requestInterceptorsMu.Unlock()
+
 	for _, fn := range c.RequestInterceptors {
 		err = fn(config)
 		if err != nil {
@@ -346,6 +374,9 @@ func (c *Config) invokeRequestInterceptors(config *RequestConfig) (err error) {
 
 // invokeResponseInterceptors invokes all response interceptors with the provided response.
 func (c *Config) invokeResponseInterceptors(resp *Response) (err error) {
+	c.responseInterceptorsMu.Lock()
+	defer c.responseInterceptorsMu.Unlock()
+
 	for _, fn := range c.ResponseInterceptors {
 		err = fn(resp)
 		if err != nil {
