@@ -22,6 +22,9 @@ func New(config *Config) *Surf {
 	if config == nil {
 		config = DefaultConfig
 	}
+	if config.Client == nil {
+		config.Client = http.DefaultClient
+	}
 	return &Surf{
 		Config: config,
 	}
@@ -55,12 +58,12 @@ func (s *Surf) prepareRequest(config *RequestConfig) (*http.Request, error) {
 	// Auto set Content-type header
 	config.setContentTypeHeader()
 
-	err = s.Config.Interceptors.invokeRequestInterceptors(config)
+	err = s.Config.invokeRequestInterceptors(config)
 	if err != nil {
 		return nil, err
 	}
 
-	err = config.Interceptors.invokeRequestInterceptors(config)
+	err = config.invokeRequestInterceptors(config)
 	if err != nil {
 		return nil, err
 	}
@@ -182,12 +185,12 @@ func (s *Surf) Request(config *RequestConfig) (*Response, error) {
 			Performance:      performance,
 		}
 
-		err = s.Config.Interceptors.invokeResponseInterceptors(&response)
+		err = s.Config.invokeResponseInterceptors(&response)
 		if err != nil {
 			return nil, err
 		}
 
-		err = config.Interceptors.invokeResponseInterceptors(&response)
+		err = config.invokeResponseInterceptors(&response)
 		if err != nil {
 			return nil, err
 		}
@@ -265,20 +268,18 @@ func (s *Surf) Trace(url string, args ...WithRequestConfig) (*Response, error) {
 // CloneDefaultConfig creates a deep copy of the default configuration.
 func (s *Surf) CloneDefaultConfig() *Config {
 	return &Config{
-		BaseURL:         s.Config.BaseURL,
-		Headers:         s.Config.Headers.Clone(),
-		Timeout:         s.Config.Timeout,
-		Params:          cloneMap(s.Config.Params),
-		Query:           cloneURLValues(s.Config.Query),
-		Cookies:         append([]*http.Cookie(nil), s.Config.Cookies...),
-		CookieJar:       s.Config.CookieJar,
-		QuerySerializer: s.Config.QuerySerializer,
-		Interceptors: Interceptors{
-			RequestInterceptors:  append([]RequestInterceptor(nil), s.Config.Interceptors.RequestInterceptors...),
-			ResponseInterceptors: append([]ResponseInterceptor(nil), s.Config.Interceptors.ResponseInterceptors...),
-		},
-		MaxBodyLength: s.Config.MaxBodyLength,
-		MaxRedirects:  s.Config.MaxRedirects,
-		Client:        s.Config.Client,
+		BaseURL:              s.Config.BaseURL,
+		Headers:              s.Config.Headers.Clone(),
+		Timeout:              s.Config.Timeout,
+		Params:               cloneMap(s.Config.Params),
+		Query:                cloneURLValues(s.Config.Query),
+		Cookies:              append([]*http.Cookie(nil), s.Config.Cookies...),
+		CookieJar:            s.Config.CookieJar,
+		QuerySerializer:      s.Config.QuerySerializer,
+		RequestInterceptors:  append([]RequestInterceptor(nil), s.Config.RequestInterceptors...),
+		ResponseInterceptors: append([]ResponseInterceptor(nil), s.Config.ResponseInterceptors...),
+		MaxBodyLength:        s.Config.MaxBodyLength,
+		MaxRedirects:         s.Config.MaxRedirects,
+		Client:               s.Config.Client,
 	}
 }

@@ -24,12 +24,6 @@ type (
 		Encode func(values url.Values) string
 	}
 
-	// Interceptors contains request and response interceptors.
-	Interceptors struct {
-		RequestInterceptors  []RequestInterceptor
-		ResponseInterceptors []ResponseInterceptor
-	}
-
 	// Config holds the configuration for Surf.
 	Config struct {
 		BaseURL   string
@@ -43,7 +37,8 @@ type (
 
 		QuerySerializer *QuerySerializer
 
-		Interceptors Interceptors
+		RequestInterceptors  []RequestInterceptor
+		ResponseInterceptors []ResponseInterceptor
 
 		MaxBodyLength int
 		MaxRedirects  int
@@ -67,7 +62,8 @@ type (
 		Query           url.Values
 		QuerySerializer *QuerySerializer
 
-		Interceptors Interceptors
+		RequestInterceptors  []RequestInterceptor
+		ResponseInterceptors []ResponseInterceptor
 
 		Body interface{}
 
@@ -80,7 +76,9 @@ type (
 )
 
 // DefaultConfig is the default configuration for Surf.
-var DefaultConfig = &Config{}
+var DefaultConfig = &Config{
+	Client: http.DefaultClient,
+}
 
 // BuildURL constructs the full URL based on the configuration.
 func (rc *RequestConfig) BuildURL() string {
@@ -234,7 +232,7 @@ func (rc *RequestConfig) mergeConfig(config *Config) *RequestConfig {
 	}
 
 	if rc.Client == nil {
-		rc.Client = &http.Client{Timeout: rc.Timeout}
+		rc.Client = http.DefaultClient
 	}
 
 	if config.CookieJar != nil {
@@ -278,26 +276,26 @@ func (rc *RequestConfig) mergeConfig(config *Config) *RequestConfig {
 }
 
 // AppendRequestInterceptors appends request interceptors to the interceptor list.
-func (c *Interceptors) AppendRequestInterceptors(interceptors ...RequestInterceptor) *Interceptors {
-	if c.RequestInterceptors == nil {
-		c.RequestInterceptors = make([]RequestInterceptor, 0)
+func (rc *RequestConfig) AppendRequestInterceptors(interceptors ...RequestInterceptor) *RequestConfig {
+	if rc.RequestInterceptors == nil {
+		rc.RequestInterceptors = make([]RequestInterceptor, 0)
 	}
-	c.RequestInterceptors = append(c.RequestInterceptors, interceptors...)
-	return c
+	rc.RequestInterceptors = append(rc.RequestInterceptors, interceptors...)
+	return rc
 }
 
 // PrependRequestInterceptors prepends request interceptors to the interceptor list.
-func (c *Interceptors) PrependRequestInterceptors(interceptors ...RequestInterceptor) *Interceptors {
-	if c.RequestInterceptors == nil {
-		c.RequestInterceptors = make([]RequestInterceptor, 0)
+func (rc *RequestConfig) PrependRequestInterceptors(interceptors ...RequestInterceptor) *RequestConfig {
+	if rc.RequestInterceptors == nil {
+		rc.RequestInterceptors = make([]RequestInterceptor, 0)
 	}
-	c.RequestInterceptors = append(interceptors, c.RequestInterceptors...)
-	return c
+	rc.RequestInterceptors = append(interceptors, rc.RequestInterceptors...)
+	return rc
 }
 
 // invokeRequestInterceptors invokes all request interceptors with the provided configuration.
-func (c *Interceptors) invokeRequestInterceptors(config *RequestConfig) (err error) {
-	for _, fn := range c.RequestInterceptors {
+func (rc *RequestConfig) invokeRequestInterceptors(config *RequestConfig) (err error) {
+	for _, fn := range rc.RequestInterceptors {
 		err = fn(config)
 		if err != nil {
 			return
@@ -307,25 +305,47 @@ func (c *Interceptors) invokeRequestInterceptors(config *RequestConfig) (err err
 }
 
 // AppendResponseInterceptors appends response interceptors to the interceptor list.
-func (c *Interceptors) AppendResponseInterceptors(interceptors ...ResponseInterceptor) *Interceptors {
-	if c.ResponseInterceptors == nil {
-		c.ResponseInterceptors = make([]ResponseInterceptor, 0)
+func (rc *RequestConfig) AppendResponseInterceptors(interceptors ...ResponseInterceptor) *RequestConfig {
+	if rc.ResponseInterceptors == nil {
+		rc.ResponseInterceptors = make([]ResponseInterceptor, 0)
 	}
-	c.ResponseInterceptors = append(c.ResponseInterceptors, interceptors...)
-	return c
+	rc.ResponseInterceptors = append(rc.ResponseInterceptors, interceptors...)
+	return rc
 }
 
 // PrependResponseInterceptors prepends response interceptors to the interceptor list.
-func (c *Interceptors) PrependResponseInterceptors(interceptors ...ResponseInterceptor) *Interceptors {
-	if c.ResponseInterceptors == nil {
-		c.ResponseInterceptors = make([]ResponseInterceptor, 0)
+func (rc *RequestConfig) PrependResponseInterceptors(interceptors ...ResponseInterceptor) *RequestConfig {
+	if rc.ResponseInterceptors == nil {
+		rc.ResponseInterceptors = make([]ResponseInterceptor, 0)
 	}
-	c.ResponseInterceptors = append(interceptors, c.ResponseInterceptors...)
-	return c
+	rc.ResponseInterceptors = append(interceptors, rc.ResponseInterceptors...)
+	return rc
 }
 
 // invokeResponseInterceptors invokes all response interceptors with the provided response.
-func (c *Interceptors) invokeResponseInterceptors(resp *Response) (err error) {
+func (rc *RequestConfig) invokeResponseInterceptors(resp *Response) (err error) {
+	for _, fn := range rc.ResponseInterceptors {
+		err = fn(resp)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// invokeRequestInterceptors invokes all request interceptors with the provided configuration.
+func (c *Config) invokeRequestInterceptors(config *RequestConfig) (err error) {
+	for _, fn := range c.RequestInterceptors {
+		err = fn(config)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// invokeResponseInterceptors invokes all response interceptors with the provided response.
+func (c *Config) invokeResponseInterceptors(resp *Response) (err error) {
 	for _, fn := range c.ResponseInterceptors {
 		err = fn(resp)
 		if err != nil {
