@@ -79,6 +79,8 @@ type (
 
 		Client  *http.Client
 		Request *http.Request
+
+		clientTrace *clientTrace
 	}
 )
 
@@ -279,6 +281,9 @@ func (rc *RequestConfig) mergeConfig(config *Config) *RequestConfig {
 			}
 		}
 	}
+
+	rc.clientTrace = &clientTrace{}
+	rc.Context = rc.clientTrace.createContext(rc.Context)
 	return rc
 }
 

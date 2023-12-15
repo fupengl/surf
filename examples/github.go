@@ -54,6 +54,7 @@ func (api *GithubApi) GetRepo(OWNER, REPO string) (info *GithubRepoInfo, err err
 	if err != nil {
 		return
 	}
+	fmt.Printf("GetRepo perf: %+v\n", resp.Performance)
 	return info, resp.Json(&info)
 }
 

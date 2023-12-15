@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"time"
 )
 
 // Surf represents the main Surf client configuration.
@@ -122,15 +121,16 @@ func (s *Surf) Request(config *RequestConfig) (*Response, error) {
 	redirects := 0
 
 	for {
-		startTime := time.Now()
-		performance := newPerformance()
+		performance := &Performance{
+			clientTrace: config.clientTrace,
+		}
 
 		resp, err := config.Client.Do(req)
 		if err != nil {
 			return nil, err
 		}
 
-		performance.recordResponseTime(startTime)
+		performance.record()
 
 		if s.Debug {
 			log.Printf("DEBUG: Received response with status code %d\n", resp.StatusCode)
