@@ -13,9 +13,12 @@ import (
 
 type (
 	// RequestInterceptor defines a function signature for request interceptors.
-	RequestInterceptor func(config *RequestConfig) (err error)
+	RequestInterceptor func(config *RequestConfig) error
 	// ResponseInterceptor defines a function signature for response interceptors.
-	ResponseInterceptor func(resp *Response) (err error)
+	ResponseInterceptor func(resp *Response) error
+
+	RequestInterceptorChain  []RequestInterceptor
+	ResponseInterceptorChain []ResponseInterceptor
 
 	// QuerySerializer is responsible for encoding URL query parameters.
 	QuerySerializer struct {
@@ -138,8 +141,8 @@ func (rc *RequestConfig) SetQuery(key, value string) *RequestConfig {
 	return rc
 }
 
-// SetParams sets a parameter in the request configuration.
-func (rc *RequestConfig) SetParams(key, value string) *RequestConfig {
+// SetParam sets a parameter in the request configuration.
+func (rc *RequestConfig) SetParam(key, value string) *RequestConfig {
 	if rc.Params == nil {
 		rc.Params = make(map[string]string)
 	}
@@ -153,6 +156,12 @@ func (rc *RequestConfig) SetHeader(key, value string) *RequestConfig {
 		rc.Headers = make(http.Header)
 	}
 	rc.Headers.Set(key, value)
+	return rc
+}
+
+// SetBody sets a body in the request configuration.
+func (rc *RequestConfig) SetBody(body interface{}) *RequestConfig {
+	rc.Body = body
 	return rc
 }
 
@@ -193,6 +202,13 @@ func (rc *RequestConfig) getRequestBody() (r io.Reader, err error) {
 		return data, nil
 	case []byte:
 		return bytes.NewReader(data), nil
+	case *multipartFile:
+		var b []byte
+		b, err = data.Bytes()
+		if err == nil {
+			rc.SetHeader(headerContentType, data.FormDataContentType())
+		}
+		return bytes.NewReader(b), err
 	default:
 		err = ErrRequestDataTypeInvalid
 		return
@@ -245,6 +261,10 @@ func (rc *RequestConfig) mergeConfig(config *Config) *RequestConfig {
 		rc.Client.Jar = *config.CookieJar
 	}
 
+	if rc.Timeout != 0 {
+		rc.Client.Timeout = rc.Timeout
+	}
+
 	if rc.Method == "" {
 		rc.Method = http.MethodGet
 	}
@@ -264,7 +284,7 @@ func (rc *RequestConfig) mergeConfig(config *Config) *RequestConfig {
 	if config.Params != nil {
 		for key, val := range config.Params {
 			if _, ok := rc.Params[key]; !ok {
-				rc.SetParams(key, val)
+				rc.SetParam(key, val)
 			}
 		}
 	}

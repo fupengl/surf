@@ -126,11 +126,10 @@ func (s *Surf) Request(config *RequestConfig) (*Response, error) {
 		}
 
 		resp, err := config.Client.Do(req)
+		performance.record()
 		if err != nil {
 			return nil, err
 		}
-
-		performance.record()
 
 		if s.Debug {
 			log.Printf("DEBUG: Received response with status code %d\n", resp.StatusCode)
@@ -201,18 +200,9 @@ func (s *Surf) Request(config *RequestConfig) (*Response, error) {
 
 // Upload performs a file upload using the provided URL, file, and optional request configuration.
 func (s *Surf) Upload(url string, file *multipartFile, args ...WithRequestConfig) (resp *Response, err error) {
-	body, err := file.Bytes()
-	if err != nil {
-		return nil, err
-	}
 	return s.makeRequest(url, http.MethodPost,
-		append([]WithRequestConfig{
-			WithBody(body),
-			WithHeaders(http.Header{
-				headerContentType: {
-					file.FormDataContentType(),
-				},
-			}),
+		append(WithRequestConfigChain{
+			WithBody(file),
 		}, args...)...,
 	)
 }

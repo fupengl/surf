@@ -17,10 +17,14 @@ func NewGithubApi() *GithubApi {
 			"Accept":               {"application/vnd.github+json"},
 			"X-GitHub-Api-Version": {"2022-11-28"},
 		},
+		ResponseInterceptors: surf.ResponseInterceptorChain{
+			func(resp *surf.Response) error {
+				fmt.Printf("\n> Response interceptor %s response perf: %+v\n\n", resp.Request().URL, resp.Performance)
+				return nil
+			},
+		},
 	}
-	return &GithubApi{
-		client: surf.New(&config),
-	}
+	return &GithubApi{surf.New(&config)}
 }
 
 type GithubUserInfo struct {
@@ -54,22 +58,5 @@ func (api *GithubApi) GetRepo(OWNER, REPO string) (info *GithubRepoInfo, err err
 	if err != nil {
 		return
 	}
-	fmt.Printf("GetRepo perf: %+v\n", resp.Performance)
 	return info, resp.Json(&info)
-}
-
-func main() {
-	api := NewGithubApi()
-
-	userInfo, err := api.GetUser("fupengl")
-	if err != nil {
-		panic(fmt.Errorf("get user info error %w", err))
-	}
-	fmt.Printf("github user fupengl info: %+v\n", userInfo)
-
-	repoInfo, err := api.GetRepo("fupengl", "surf")
-	if err != nil {
-		panic(fmt.Errorf("get repo info error %w", err))
-	}
-	fmt.Printf("github repo info: %+v\n", repoInfo)
 }

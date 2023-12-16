@@ -10,6 +10,8 @@ import (
 // WithRequestConfig is a function signature for configuring request options.
 type WithRequestConfig func(c *RequestConfig)
 
+type WithRequestConfigChain []WithRequestConfig
+
 // WithBody sets the request body in the request configuration.
 func WithBody(body interface{}) WithRequestConfig {
 	return func(c *RequestConfig) {
@@ -70,7 +72,7 @@ func WithSetQuery(key, value string) WithRequestConfig {
 // WithSetParam adds a parameter in the request configuration.
 func WithSetParam(key, value string) WithRequestConfig {
 	return func(c *RequestConfig) {
-		c.SetParams(key, value)
+		c.SetParam(key, value)
 	}
 }
 
