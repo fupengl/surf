@@ -19,6 +19,13 @@ func WithBody(body interface{}) WithRequestConfig {
 	}
 }
 
+// WithBaseURL sets the BaseURL parameters in the request configuration.
+func WithBaseURL(url string) WithRequestConfig {
+	return func(c *RequestConfig) {
+		c.BaseURL = url
+	}
+}
+
 // WithHeaders sets the request headers in the request configuration.
 func WithHeaders(header http.Header) WithRequestConfig {
 	return func(c *RequestConfig) {

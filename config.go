@@ -72,6 +72,8 @@ type (
 		requestInterceptorsMu  sync.Mutex
 		responseInterceptorsMu sync.Mutex
 
+		// Body Request body, the request body type will automatically set the content-type.
+		// When processing file uploads, you can pass in the structure returned by NewMultipartFile.
 		Body interface{}
 
 		MaxBodyLength int
@@ -168,6 +170,24 @@ func (rc *RequestConfig) SetBody(body interface{}) *RequestConfig {
 // SetCookie adds a cookie to the request configuration.
 func (rc *RequestConfig) SetCookie(cookie *http.Cookie) *RequestConfig {
 	rc.Cookies = append(rc.Cookies, cookie)
+	return rc
+}
+
+// SetContext set ctx to the request configuration.
+func (rc *RequestConfig) SetContext(ctx context.Context) *RequestConfig {
+	rc.Context = ctx
+	return rc
+}
+
+// SetMethod set http.Method to the request configuration.
+func (rc *RequestConfig) SetMethod(method string) *RequestConfig {
+	rc.Method = method
+	return rc
+}
+
+// SetUrl set url to the request configuration.
+func (rc *RequestConfig) SetUrl(url string) *RequestConfig {
+	rc.Url = url
 	return rc
 }
 
