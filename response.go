@@ -20,6 +20,9 @@ type Response struct {
 
 // Body returns the raw body of the HTTP response.
 func (r *Response) Body() []byte {
+	if r.originalResponse == nil {
+		return []byte{}
+	}
 	return r.body
 }
 
@@ -79,6 +82,11 @@ func (r *Response) Cookies() []*http.Cookie {
 // Ok checks if the HTTP response status code indicates success (2xx).
 func (r *Response) Ok() bool {
 	return r.originalResponse.StatusCode >= http.StatusOK && r.originalResponse.StatusCode < http.StatusMultipleChoices
+}
+
+// Failed checks if the HTTP response status code indicates a failure (status code >= 400).
+func (r *Response) Failed() bool {
+	return r.originalResponse.StatusCode >= http.StatusBadRequest
 }
 
 // Config returns the request configuration associated with the response.
