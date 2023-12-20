@@ -1,6 +1,9 @@
 package surf
 
-import "net/http"
+import (
+	"net/http"
+	"regexp"
+)
 
 const Version = "0.0.1"
 
@@ -22,4 +25,9 @@ var (
 	headerContentEncoding = http.CanonicalHeaderKey("Content-Encoding")
 	headerContentType     = http.CanonicalHeaderKey("Content-Type")
 	headerContentLength   = http.CanonicalHeaderKey("Content-Length")
+)
+
+var (
+	regJsonHeader = regexp.MustCompile(`(?i:(application|text)/(.*json.*)(;|$))`)
+	regXmlHeader  = regexp.MustCompile(`(?i:(application|text)/(.*xml.*)(;|$))`)
 )

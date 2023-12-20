@@ -2,6 +2,7 @@ package surf
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -31,12 +32,14 @@ func New(config *Config) *Surf {
 
 // prepareRequest prepares an HTTP request based on the provided configuration.
 func (s *Surf) prepareRequest(config *RequestConfig) (*http.Request, error) {
-	r, err := config.getRequestBody()
+	body, err := config.getRequestBody()
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(config.Context, config.Method, config.BuildURL(), r)
+	orgBody := config.Body
+
+	req, err := http.NewRequestWithContext(config.Context, config.Method, config.BuildURL(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -54,9 +57,6 @@ func (s *Surf) prepareRequest(config *RequestConfig) (*http.Request, error) {
 		req.AddCookie(cookie)
 	}
 
-	// Auto set Content-type header
-	config.setContentTypeHeader()
-
 	err = s.Config.invokeRequestInterceptors(config)
 	if err != nil {
 		return nil, err
@@ -67,23 +67,35 @@ func (s *Surf) prepareRequest(config *RequestConfig) (*http.Request, error) {
 		return nil, err
 	}
 
-	// Update URL
+	// Update Request Body
+	if orgBody != config.Body {
+		newBody, err := config.getRequestBody()
+		if err != nil {
+			return nil, err
+		}
+		req.Body = io.NopCloser(newBody)
+	}
+
+	// Update Request URL
 	req.URL, err = url.Parse(config.BuildURL())
 	if err != nil {
 		return nil, err
 	}
 
-	// Update Headers
+	// Update Request Headers
 	for key, values := range config.Headers {
 		for _, value := range values {
 			req.Header.Add(key, value)
 		}
 	}
 
-	// Update Cookies
+	// Update Request Cookies
 	for _, cookie := range config.Cookies {
 		req.AddCookie(cookie)
 	}
+
+	// Auto set Content-type header
+	config.setContentTypeHeader()
 
 	if req.UserAgent() == "" {
 		req.Header.Set(headerUserAgent, UserAgent)

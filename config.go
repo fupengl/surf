@@ -3,6 +3,8 @@ package surf
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"encoding/xml"
 	"io"
 	"net/http"
 	"net/url"
@@ -229,9 +231,27 @@ func (rc *RequestConfig) getRequestBody() (r io.Reader, err error) {
 			rc.SetHeader(headerContentType, data.FormDataContentType())
 		}
 		return bytes.NewReader(b), err
+	case url.Values:
+		return bytes.NewReader([]byte(data.Encode())), nil
+	case string:
+		return bytes.NewReader([]byte(data)), err
 	default:
-		err = ErrRequestDataTypeInvalid
-		return
+		contentType := rc.Headers.Get(headerContentType)
+		if contentType != "" && regXmlHeader.MatchString(contentType) {
+			xmlData, xmlErr := xml.Marshal(data)
+			if xmlErr != nil {
+				return nil, xmlErr
+			}
+			return bytes.NewReader(xmlData), nil
+		}
+		if contentType != "" && regJsonHeader.MatchString(contentType) {
+			jsonData, jsonErr := json.Marshal(data)
+			if jsonErr != nil {
+				return nil, jsonErr
+			}
+			return bytes.NewReader(jsonData), nil
+		}
+		return nil, ErrRequestDataTypeInvalid
 	}
 }
 
@@ -241,18 +261,16 @@ func (rc *RequestConfig) setContentTypeHeader() {
 		return
 	}
 
-	switch body := rc.Body.(type) {
+	switch rc.Body.(type) {
 	case string:
 		rc.SetHeader(headerContentType, defaultTextContentType)
 	case []byte:
 		rc.SetHeader(headerContentType, defaultStreamContentType)
-	case io.Reader:
+	case io.Reader, multipartFile:
 		// Do nothing, assuming the user has set the appropriate Content-Type
 	case url.Values:
 		// For form data, set Content-Type as application/x-www-form-urlencoded
 		rc.SetHeader(headerContentType, defaultFormContentType)
-		// URL encode the form data
-		rc.Body = strings.NewReader(body.Encode())
 	default:
 		// For other types, set the default Content-Type as JSON
 		rc.SetHeader(headerContentType, defaultJsonContentType)
