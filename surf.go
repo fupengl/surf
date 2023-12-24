@@ -48,7 +48,7 @@ func (s *Surf) prepareRequest(config *RequestConfig) (*http.Request, error) {
 	config.Request = req
 
 	// Update global Headers Cookies
-	for key, values := range s.Config.Headers {
+	for key, values := range s.Config.Header {
 		for _, value := range values {
 			req.Header.Set(key, value)
 		}
@@ -83,7 +83,7 @@ func (s *Surf) prepareRequest(config *RequestConfig) (*http.Request, error) {
 	}
 
 	// Update Request Headers
-	for key, values := range config.Headers {
+	for key, values := range config.Header {
 		for _, value := range values {
 			req.Header.Add(key, value)
 		}
@@ -212,10 +212,10 @@ func (s *Surf) Request(config *RequestConfig) (*Response, error) {
 
 // Upload performs a file upload using the provided URL, file, and optional request configuration.
 func (s *Surf) Upload(url string, file *multipartFile, args ...WithRequestConfig) (resp *Response, err error) {
-	return s.makeRequest(url, http.MethodPost,
-		append(WithRequestConfigChain{
-			WithBody(file),
-		}, args...)...,
+	return s.makeRequest(
+		url,
+		http.MethodPost,
+		append(WithRequestConfigChain{WithBody(file)}, args...)...,
 	)
 }
 
@@ -271,7 +271,7 @@ func (s *Surf) Trace(url string, args ...WithRequestConfig) (*Response, error) {
 func (s *Surf) CloneDefaultConfig() *Config {
 	return &Config{
 		BaseURL:              s.Config.BaseURL,
-		Headers:              s.Config.Headers.Clone(),
+		Header:               s.Config.Header.Clone(),
 		Timeout:              s.Config.Timeout,
 		Params:               cloneMap(s.Config.Params),
 		Query:                cloneURLValues(s.Config.Query),
@@ -283,5 +283,9 @@ func (s *Surf) CloneDefaultConfig() *Config {
 		MaxBodyLength:        s.Config.MaxBodyLength,
 		MaxRedirects:         s.Config.MaxRedirects,
 		Client:               s.Config.Client,
+		JSONMarshal:          s.Config.JSONMarshal,
+		JSONUnmarshal:        s.Config.JSONUnmarshal,
+		XMLMarshal:           s.Config.XMLMarshal,
+		XMLUnmarshal:         s.Config.XMLUnmarshal,
 	}
 }

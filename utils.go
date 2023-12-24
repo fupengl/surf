@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
 
 	"github.com/dsnet/compress/brotli"
@@ -99,4 +100,20 @@ func cloneURLValues(originalValues url.Values) url.Values {
 	}
 
 	return clonedValues
+}
+
+func isZero(value interface{}) bool {
+	if value == nil {
+		return true
+	}
+
+	v := reflect.ValueOf(value)
+	return reflect.DeepEqual(v.Interface(), reflect.Zero(v.Type()).Interface())
+}
+
+func defaultValue[T any](value, defaultValue T) T {
+	if isZero(value) {
+		return defaultValue
+	}
+	return value
 }

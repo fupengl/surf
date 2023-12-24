@@ -19,7 +19,9 @@ type (
 	// ResponseInterceptor defines a function signature for response interceptors.
 	ResponseInterceptor func(resp *Response) error
 
-	RequestInterceptorChain  []RequestInterceptor
+	// RequestInterceptorChain alias for RequestInterceptors
+	RequestInterceptorChain []RequestInterceptor
+	// ResponseInterceptorChain alias for ResponseInterceptors
 	ResponseInterceptorChain []ResponseInterceptor
 
 	// QuerySerializer is responsible for encoding URL query parameters.
@@ -30,7 +32,7 @@ type (
 	// Config holds the configuration for Surf.
 	Config struct {
 		BaseURL   string
-		Headers   http.Header
+		Header    http.Header
 		Timeout   time.Duration
 		Cookies   []*http.Cookie
 		CookieJar *http.CookieJar
@@ -50,13 +52,18 @@ type (
 		MaxRedirects  int
 
 		Client *http.Client
+
+		JSONMarshal   func(v interface{}) ([]byte, error)
+		JSONUnmarshal func(data []byte, v interface{}) error
+		XMLMarshal    func(v interface{}) ([]byte, error)
+		XMLUnmarshal  func(data []byte, v interface{}) error
 	}
 
 	// RequestConfig holds the configuration for a specific HTTP request.
 	RequestConfig struct {
 		BaseURL string
 		Url     string
-		Headers http.Header
+		Header  http.Header
 		Method  string
 		Cookies []*http.Cookie
 
@@ -85,6 +92,11 @@ type (
 		Request *http.Request
 
 		clientTrace *clientTrace
+
+		JSONMarshal   func(v interface{}) ([]byte, error)
+		JSONUnmarshal func(data []byte, v interface{}) error
+		XMLMarshal    func(v interface{}) ([]byte, error)
+		XMLUnmarshal  func(data []byte, v interface{}) error
 	}
 )
 
@@ -156,10 +168,10 @@ func (rc *RequestConfig) SetParam(key, value string) *RequestConfig {
 
 // SetHeader sets a header in the request configuration.
 func (rc *RequestConfig) SetHeader(key, value string) *RequestConfig {
-	if rc.Headers == nil {
-		rc.Headers = make(http.Header)
+	if rc.Header == nil {
+		rc.Header = make(http.Header)
 	}
-	rc.Headers.Set(key, value)
+	rc.Header.Set(key, value)
 	return rc
 }
 
@@ -236,28 +248,32 @@ func (rc *RequestConfig) getRequestBody() (r io.Reader, err error) {
 	case string:
 		return bytes.NewReader([]byte(data)), err
 	default:
-		contentType := rc.Headers.Get(headerContentType)
-		if contentType != "" && regXmlHeader.MatchString(contentType) {
-			xmlData, xmlErr := xml.Marshal(data)
-			if xmlErr != nil {
-				return nil, xmlErr
+		contentType := rc.Header.Get(headerContentType)
+		if contentType != "" {
+			if regXmlHeader.MatchString(contentType) {
+				xmlData, xmlErr := rc.XMLMarshal(data)
+				if xmlErr != nil {
+					return nil, xmlErr
+				}
+				return bytes.NewReader(xmlData), nil
 			}
-			return bytes.NewReader(xmlData), nil
-		}
-		if contentType != "" && regJsonHeader.MatchString(contentType) {
-			jsonData, jsonErr := json.Marshal(data)
-			if jsonErr != nil {
-				return nil, jsonErr
+
+			if regJsonHeader.MatchString(contentType) {
+				jsonData, jsonErr := rc.JSONMarshal(data)
+				if jsonErr != nil {
+					return nil, jsonErr
+				}
+				return bytes.NewReader(jsonData), nil
 			}
-			return bytes.NewReader(jsonData), nil
 		}
+
 		return nil, ErrRequestDataTypeInvalid
 	}
 }
 
 // setContentTypeHeader sets the Content-Type header based on the request body type.
 func (rc *RequestConfig) setContentTypeHeader() {
-	if rc.Headers.Get(headerContentType) != "" {
+	if rc.Header.Get(headerContentType) != "" {
 		return
 	}
 
@@ -284,15 +300,11 @@ func (rc *RequestConfig) mergeConfig(config *Config) *RequestConfig {
 	}
 
 	if rc.Client == nil {
-		rc.Client = config.Client
+		rc.Client = defaultValue(config.Client, http.DefaultClient)
 	}
 
 	if rc.Timeout == 0 {
 		rc.Timeout = config.Timeout
-	}
-
-	if rc.Client == nil {
-		rc.Client = http.DefaultClient
 	}
 
 	if config.CookieJar != nil {
@@ -335,6 +347,20 @@ func (rc *RequestConfig) mergeConfig(config *Config) *RequestConfig {
 				}
 			}
 		}
+	}
+
+	if rc.JSONMarshal == nil {
+		rc.JSONMarshal = defaultValue(config.JSONMarshal, json.Marshal)
+	}
+	if rc.JSONUnmarshal == nil {
+		rc.JSONUnmarshal = defaultValue(config.JSONUnmarshal, json.Unmarshal)
+	}
+
+	if rc.XMLMarshal == nil {
+		rc.XMLMarshal = defaultValue(config.XMLMarshal, xml.Marshal)
+	}
+	if rc.XMLUnmarshal == nil {
+		rc.XMLUnmarshal = defaultValue(config.XMLUnmarshal, xml.Unmarshal)
 	}
 
 	// Enable http trace for Performance

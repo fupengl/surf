@@ -26,10 +26,10 @@ func WithBaseURL(url string) WithRequestConfig {
 	}
 }
 
-// WithHeaders sets the request headers in the request configuration.
-func WithHeaders(header http.Header) WithRequestConfig {
+// WithHeader sets the request header in the request configuration.
+func WithHeader(header http.Header) WithRequestConfig {
 	return func(c *RequestConfig) {
-		c.Headers = header
+		c.Header = header
 	}
 }
 

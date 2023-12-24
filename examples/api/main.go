@@ -13,7 +13,7 @@ type GithubApi struct {
 func NewGithubApi() *GithubApi {
 	config := surf.Config{
 		BaseURL: "https://api.github.com",
-		Headers: map[string][]string{
+		Header: map[string][]string{
 			"Accept":               {"application/vnd.github+json"},
 			"X-GitHub-Api-Version": {"2022-11-28"},
 		},

@@ -101,11 +101,7 @@ func (m *multipartFile) Bytes() ([]byte, error) {
 
 	if len(m.errors) > 0 {
 		// If there are errors, combine them into a single error and return
-		var errMsg string
-		for _, e := range m.errors {
-			errMsg += e.Error() + "; "
-		}
-		return nil, errors.New(errMsg[:len(errMsg)-2]) // Removing trailing "; "
+		return nil, errors.Join(m.errors...)
 	}
 
 	return m.data.Bytes(), nil
