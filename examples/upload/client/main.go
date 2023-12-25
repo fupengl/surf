@@ -12,7 +12,7 @@ func main() {
 		"name":  "fupengl",
 		"email": "fupenglxy@gmail.com",
 	})
-	file.AddFileFromPath("files", "../../README.md")
+	file.AddFileFromPath("files", "README.md")
 	resp, err := surf.Default.Upload("http://127.0.0.1:8888/upload", file)
 	if err != nil {
 		panic(err)
